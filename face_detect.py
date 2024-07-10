@@ -1,5 +1,6 @@
 import cv2
 import sys
+import time
 
 
 class FaceDetector():

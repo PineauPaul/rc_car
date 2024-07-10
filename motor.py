@@ -1,59 +1,75 @@
 import time
 import pigpio
 
-ESC_PIN = 18  # GPIO pin connected to the ESC signal wire
-MAX_SPEED = 2000
-MIN_SPEED = 1000
-ZERO_SPEED = 1500
+class Motor():
+    def __init__(self, esc_pin = 18):
+        self.max_speed = 2000
+        self.min_speed = 1000
+        self.zero_speed = 1500
+        self.esc_pin = esc_pin
+        self.pi_gpio = pi = pigpio.pi()
 
 
-pi = pigpio.pi()
-if not pi.connected:
-    exit()
+    def __del__(self):
+        self.set_speed(0)
+        self.pi_gpio.stop()
+    def initialise_esc(self):
+        if(self.pi_gpio.connected):
+            self.pi_gpio.set_servo_pulsewidth(self.esc_pin, 0)  # Send a neutral signal to initialize
+            time.sleep(4)
+        else:
+            print("esc not connected")
 
-# Function to send a PWM signal to the ESC
-def set_speed(speed):
-    #speed is between -100 and + 100
-    if(abs(speed) > 100):
-        print("cannot set this speed")
-        return
+    def set_speed(self, speed):
+        # speed is between -100 and + 100
+        if(not self.pi_gpio.connected):
+            print("esc not connected")
+            return
 
-    pulse_speed = 1500 + (speed*500)/100
-    if(pulse_speed > MAX_SPEED or pulse_speed < MIN_SPEED):
-        print("Error while compute pulse_speed", pulse_speed, speed)
+        if (abs(speed) > 100):
+            print("cannot set this speed")
+            return
 
-    pi.set_servo_pulsewidth(ESC_PIN, pulse_speed)
-    print(f"Speed set to: {speed}")
+        pulse_speed = 1500 + (speed * 500) / 100
+        if (pulse_speed > self.max_speed or pulse_speed < self.min_speed):
+            print("Error while compute pulse_speed", pulse_speed, speed)
 
-# Initialize the ESC
-pi.set_servo_pulsewidth(ESC_PIN, 0)  # Send a neutral signal to initialize
-time.sleep(4)
+        self.pi_gpio.set_servo_pulsewidth(self.esc_pin, pulse_speed)
+        print(f"Speed set to: {speed}")
+
+    def set_esc_pin(self, pin):
+        self.esc_pin = pin
+
+    def set_max_speed(self, speed):
+        self.max_speed = speed
+
+    def set_min_speed(self, speed):
+        self.min_speed = speed
+
+    def set_zero_speed(self, speed):
+        self.zero_speed = speed
 
 
+if __name__=="__main__":
+    motor = Motor()
 
-# Testing PWM range
-try:
+    # Testing PWM range
     print("Setting speed to neutral...")
-    set_speed(0)  # Neutral
+    motor.set_speed(0)  # Neutral
     time.sleep(2)
 
     print("Setting speed to forward...")
-    set_speed(30)  # Forward
+    motor.set_speed(30)  # Forward
     time.sleep(5)
 
     print("Setting speed to neutral...")
-    set_speed(0)  # Neutral
+    motor.set_speed(0)  # Neutral
     time.sleep(2)
 
     print("Setting speed to backward...")
-    set_speed(-20)  # Backward
+    motor.set_speed(-20)  # Backward
     time.sleep(5)
 
     print("Setting speed to neutral...")
-    set_speed(0)  # Neutral
+    motor.set_speed(0)  # Neutral
     time.sleep(2)
-
-except KeyboardInterrupt:
-    # Stop the motor on program exit
-    set_speed(0)
-    pi.stop()
